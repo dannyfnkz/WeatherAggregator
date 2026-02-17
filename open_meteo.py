@@ -3,10 +3,12 @@ from weather_service import WeatherServiceError
 
 
 class OpenMeteoRequestError(WeatherServiceError):
-    def __init__(self, error: requests.exceptions.HTTPError|requests.exceptions.RequestException):
+    def __init__(self, error: requests.exceptions.HTTPError | requests.exceptions.RequestException):
         self.error = error
+
     def __repr__(self):
         return f"{self.__class__.__name__}({repr(self.error)})"
+
 
 class OpenMeteoResponse:
     def __init__(self, latitude: float, longitude: float, time: str, temp_c: float, weather_code: int):
@@ -26,6 +28,7 @@ class OpenMeteoResponse:
             f"weather_code={self.weather_code!r})"
         )
 
+
 def fetch_data_open_meteo(latitude: float, longitude: float):
     OPEAN_METEO_ENDPOINT = (f"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}"
                             f"&current_weather=true")
@@ -38,12 +41,6 @@ def fetch_data_open_meteo(latitude: float, longitude: float):
         # The response body from Lambda is a JSON string, which we load into a Python dict
         data = response.json()
 
-       #  print("✅ API Call Successful!")
-       #  print("Status Code:", response.status_code)
-       #  print("Response Data (Python dict):")
-       #  # Pretty print the dictionary for readability
-       # # print(json.dumps(data, indent=4))
-
         latitude = data.get("latitude", None)
         longitude = data.get("longitude", None)
 
@@ -55,4 +52,4 @@ def fetch_data_open_meteo(latitude: float, longitude: float):
         return OpenMeteoResponse(latitude, longitude, time, temperature_c, weather_code)
 
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
-       raise OpenMeteoRequestError(err)
+        raise OpenMeteoRequestError(err)

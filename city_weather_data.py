@@ -1,6 +1,5 @@
 import csv
 import json
-from dataclasses import replace
 from datetime import datetime, timezone
 import time
 from enum import Enum
@@ -32,7 +31,7 @@ class WeatherCondition(Enum):
 
 class CityWeatherData:
     def __init__(self, latitude: float, longitude: float, last_update_epoch: int, temp_c: float,
-                 weather_condition: WeatherCondition|List[WeatherCondition]):
+                 weather_condition: WeatherCondition | List[WeatherCondition]):
         self.latitude = latitude
         self.longitude = longitude
         self.last_update_epoch = last_update_epoch
@@ -54,7 +53,6 @@ class CityWeatherData:
         return json.dumps({
             "latitude": self.latitude,
             "longitude": self.longitude,
-            #"last_update": datetime.fromtimestamp(self.last_update_epoch, tz=timezone.utc).isoformat(),
             "last_update": utils.epoch_timestamp_to_iso_format(self.last_update_epoch),
             "temp_c": f"{self.temp_c:.2f}" if self.temp_c is not None else "N / A",
             "weather_condition": " or ".join(wc.value[1] for wc in self.weather_condition)
@@ -62,18 +60,23 @@ class CityWeatherData:
             else "N / A"
         })
 
+
 class CityWeatherDataFetchError(Exception):
     pass
+
 
 class CityWeatherDataCityNotFoundError(CityWeatherDataFetchError):
     def __repr__(self):
         return f"{self.__class__.__name__}()"
 
+
 class CityWeatherDataRequestError(CityWeatherDataFetchError):
     def __init__(self, weather_service_error: WeatherServiceError):
         self.weather_service_error = weather_service_error
+
     def __repr__(self):
         return f"{self.__class__.__name__}({repr(self.weather_service_error)})"
+
 
 def convert_weather_condition_text_to_weather_condition(weather_condition_text: str) -> WeatherCondition:
     clear_weather_condition_text = (weather_condition_text.lower().replace("shower", "")
@@ -93,7 +96,7 @@ def convert_weather_condition_text_to_weather_condition(weather_condition_text: 
         else:
             return WeatherCondition.CLOUDY
     elif "drizzle" in clear_weather_condition_text:
-            return WeatherCondition.DRIZZLE
+        return WeatherCondition.DRIZZLE
     elif "rain" in clear_weather_condition_text:
         if "light" in clear_weather_condition_text:
             return WeatherCondition.LIGHT_RAIN
@@ -158,6 +161,7 @@ def convert_weather_service_response_to_weather_data(weather_service_response: A
 
     return CityWeatherData(latitude, longitude, last_update_epoch, temp_c, weather_condition)
 
+
 def average_city_weather_data(weather_data_list: List[CityWeatherData]) -> Optional[CityWeatherData]:
     def city_weather_data_filter(city_weather_data: CityWeatherData) -> bool:
         STALE_CUTOFF_NUM_SECONDS = 6 * 60 * 60
@@ -178,9 +182,9 @@ def average_city_weather_data(weather_data_list: List[CityWeatherData]) -> Optio
                                         if data.weather_condition is not None
                                         and data.weather_condition != [WeatherCondition.UNRECOGNIZED]))
 
-
     return CityWeatherData(filtered_weather_data_list[0].latitude, filtered_weather_data_list[0].longitude,
                            avg_last_update_epoch, avg_temp_c, avg_weather_condition)
+
 
 def fetch_city_weather_data(city_name: str) -> CityWeatherData:
     try:
@@ -201,7 +205,7 @@ def fetch_city_weather_data(city_name: str) -> CityWeatherData:
             raise CityWeatherDataFetchError("All city weather datas were filtered out")
 
         return avg_weather_data
-    except WeatherApiCityNotFoundError as e:
+    except WeatherApiCityNotFoundError:
         raise CityWeatherDataCityNotFoundError()
     except WeatherApiRequestError as e:
         raise CityWeatherDataRequestError(e)

@@ -1,6 +1,4 @@
 import json
-from enum import Enum
-
 import requests
 from weather_service import WeatherServiceError
 
@@ -8,16 +6,17 @@ from weather_service import WeatherServiceError
 class WeatherApiError(WeatherServiceError):
     pass
 
+
 class WeatherApiCityNotFoundError(WeatherApiError):
     pass
 
+
 class WeatherApiRequestError(WeatherApiError):
-    def __init__(self, error: requests.exceptions.HTTPError|requests.exceptions.RequestException):
+    def __init__(self, error: requests.exceptions.HTTPError | requests.exceptions.RequestException):
         self.error = error
 
     def __repr__(self):
         return f"{self.__class__.__name__}({repr(self.error)})"
-
 
 
 class WeatherApiResponse:
@@ -38,7 +37,6 @@ class WeatherApiResponse:
     #     HEAVY_RAIN = (1195, "Heavy rain")
     #     LIGHT_SNOW = (1213, "Light Snow")
     #     PATCHY_MODERATE_SNOW = (1216, "Patchy Moderate Snow")
-
 
     def __init__(self, city_name: str, country_name: str,
                  latitude: float, longitude: float, last_update_epoch: int, temp_c: float, condition_text: str,
@@ -76,12 +74,6 @@ def fetch_data_weather_api(city_name) -> WeatherApiResponse:
         # The response body from Lambda is a JSON string, which we load into a Python dict
         data = response.json()
 
-        # print("✅ API Call Successful!")
-        # print("Status Code:", response.status_code)
-        # print("Response Data (Python dict):")
-        # # Pretty print the dictionary for readability
-        #print(json.dumps(data, indent=4))
-
         location_dict = data.get("location", {})
         city_name = location_dict.get("name")
         country_name = location_dict.get("country")
@@ -100,14 +92,10 @@ def fetch_data_weather_api(city_name) -> WeatherApiResponse:
                                   condition_text, condition_code)
 
     except (requests.exceptions.HTTPError, requests.exceptions.RequestException) as err:
-        if err.response is not None and err.response.content is not None \
-            and json.loads(err.response.content.decode('utf-8')).get("error", {}).get("code", -1) == 1006:
+        if (err.response is not None
+            and err.response.content is not None
+            and json.loads(err.response.content.decode('utf-8'))
+                        .get("error", {}).get("code", -1) == 1006):
             raise WeatherApiCityNotFoundError()
         else:
             raise WeatherApiRequestError(err)
-    # except requests.exceptions.HTTPError as err:
-    #     print(f"❌ HTTP Error occurred")
-    #     print("Status Code:", err.response.status_code)
-    #     print("Content:", err.response.content)
-    # except requests.exceptions.RequestException as err:
-    #     print(f"❌ An error occurred during the request: {err}")

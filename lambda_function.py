@@ -7,10 +7,8 @@ from botocore.exceptions import ClientError
 
 import city_weather_data
 import utils
-from city_weather_data import CityWeatherDataFetchError
 from city_weather_data import CityWeatherDataCityNotFoundError
 from city_weather_data import CityWeatherDataRequestError
-from weather_api import WeatherApiCityNotFoundError
 
 dynamodb = boto3.resource('dynamodb')
 ip_table = dynamodb.Table("RequestIPLogs")
@@ -23,6 +21,7 @@ def get_request_ip(event):
 def get_request_city_param(event):
     return event.get('queryStringParameters', {}).get('city', None)
 
+
 def get_response(status_code: int, context, content_type: str = "application/json", **kwargs):
     return {
         'statusCode': status_code,
@@ -34,6 +33,7 @@ def get_response(status_code: int, context, content_type: str = "application/jso
             "requestId": context.aws_request_id,
         } | kwargs)
     }
+
 
 def get_ip_last_accessed_timestamp_from_db(ip) -> Tuple[Optional[int], bool]:
     try:
@@ -67,7 +67,7 @@ def update_ip_fields_in_db(ip, last_access_timestamp: int, new_city: str) \
         )
         response_attributes = response['Attributes']
         print(f"IP fields Update successful: {response_attributes}")
-        return int(response_attributes['LastAccessTimestamp']), response_attributes['recent_cities'] , True
+        return int(response_attributes['LastAccessTimestamp']), response_attributes['recent_cities'], True
 
     except ClientError as e:
         print(f"LastAccessTimestamp Update failed: {str(e)}")
@@ -88,6 +88,7 @@ def handle_missing_parameter_city(context):
             "request_id": context.aws_request_id
         })
     }
+
 
 def handle_city_not_found(context, city: str, last_access_timestamp_message: str, recent_cities: List[str]):
     return get_response(404, context, error="Not found", message="No data available for the specified city.",
@@ -111,6 +112,7 @@ def handle_internal_server_error(context):
         })
     }
 
+
 def handle_service_unavailable_error(context, last_access_timestamp_message: str):
     return {
         'statusCode': 503,
@@ -126,6 +128,7 @@ def handle_service_unavailable_error(context, last_access_timestamp_message: str
             "request_id": context.aws_request_id
         })
     }
+
 
 def lambda_handler(event, context):
     # update for yml deploy test
@@ -184,7 +187,3 @@ def lambda_handler(event, context):
     except CityWeatherDataRequestError as e:
         print(f'City Weather data fetching failed due to a request error: {e}')
         return handle_service_unavailable_error(context, prev_last_access_timestamp_message, recent_cities)
-
-
-
-
