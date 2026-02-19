@@ -31,7 +31,7 @@ def get_response(status_code: int, context, content_type: str = "application/jso
         },
         'body': json.dumps({
             "requestId": context.aws_request_id,
-        } | kwargs)
+        } | kwargs) # add kwargs to body dict
     }
 
 
@@ -75,19 +75,9 @@ def update_ip_fields_in_db(ip, last_access_timestamp: int, new_city: str) \
 
 
 def handle_missing_parameter_city(context):
-    return {
-        'statusCode': 400,
-        'headers': {
-            'Content-Type': 'application/json',
-            "X-Request-ID": context.aws_request_id
-        },
-        'body': json.dumps({
-            "error": "Bad Request",
-            "message": "The required query parameter 'city' is missing.",
-            "details": "Please include ?city=CityName in the request URL.",
-            "request_id": context.aws_request_id
-        })
-    }
+    return get_response(400, context, error="Bad Request",
+                        message="The required query parameter 'city' is missing.",
+                        details="Please include ?city=CityName in the request URL.")
 
 
 def handle_city_not_found(context, city: str, last_access_timestamp_message: str, recent_cities: List[str]):
@@ -98,36 +88,16 @@ def handle_city_not_found(context, city: str, last_access_timestamp_message: str
 
 
 def handle_internal_server_error(context):
-    return {
-        'statusCode': 500,
-        'headers': {
-            'Content-Type': 'application/json',
-            "X-Request-ID": context.aws_request_id
-        },
-        'body': json.dumps({
-            "error": "Internal Server Error",
-            "message": "An unexpected error occurred.",
-            "details": "Please try again later.",
-            "request_id": context.aws_request_id
-        })
-    }
+    return get_response(500, context, error="Internal Server Error",
+                        message="An unexpected error occurred.",
+                        details="Please try again later.")
 
 
 def handle_service_unavailable_error(context, last_access_timestamp_message: str):
-    return {
-        'statusCode': 503,
-        'headers': {
-            'Content-Type': 'application/json',
-            "X-Request-ID": context.aws_request_id
-        },
-        'body': json.dumps({
-            "error": "Service Unavailable",
-            "message": "Service is currently unavailable.",
-            "details": "Please try again later.",
-            "last_access": last_access_timestamp_message,
-            "request_id": context.aws_request_id
-        })
-    }
+    return get_response(503, context, error="Service Unavailable",
+                        message="Service is currently unavailable.",
+                        details="Please try again later.",
+                        last_access=last_access_timestamp_message)
 
 
 def lambda_handler(event, context):
@@ -166,20 +136,9 @@ def lambda_handler(event, context):
     try:
         weather_data = city_weather_data.fetch_city_weather_data(city)
 
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                "X-Request-ID": context.aws_request_id
-            },
-            'body': json.dumps({
-                "city": city,
-                "weather": weather_data.to_json(),
-                "last_access": prev_last_access_timestamp_message,
-                "recent_cities": recent_cities[1:],
-                "request_id": context.aws_request_id
-            })
-        }
+        return get_response(200, context, city=city, weather=weather_data.to_json(),
+                            last_access=prev_last_access_timestamp_message,
+                            recent_cities=recent_cities[1:])
 
     except CityWeatherDataCityNotFoundError as e:
         print(f'City Weather data fetching failed as city was not found: {e}')
