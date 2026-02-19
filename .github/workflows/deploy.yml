@@ -21,9 +21,10 @@ jobs:
           pip install flake8
           flake8 . --exclude=venv,.venv,env,bin,lib,deps --count --statistics  --ignore=E501,E127,E128,W503,E126
       - name: Run Unit Tests
-        run: |
+        # keep pytest out of production, only used for testing
+        run: | 
           pip install pytest
-          pip install requests pytest
+          pip install -r requirements.txt
           pytest test_city_weather_data.py
 
       - name: Deploy to AWS
